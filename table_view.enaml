@@ -1,0 +1,83 @@
+import os
+import time
+import random
+from threading import Thread
+from atom.api import (Atom, Str, Range, ContainerList, Bool)
+from enaml.widgets.api import *
+from enamlx.widgets.table_view import (
+    TableView, TableViewRow, TableViewItem
+)
+
+from enaml.widgets.api import (
+    Window, Container, PushButton, CheckBox, RadioButton
+)
+from enaml.core.looper import Looper
+from enaml.widgets.spin_box import SpinBox
+from enaml.image import Image
+from enaml.application import deferred_call
+from enaml.widgets.menu import Menu
+from enaml.widgets.action import Action
+from enamlx.core.looper import ListLooper
+
+class Person(Atom):
+    last_name = Str()
+
+    first_name = Str()
+
+    age = Range(low=0)
+    
+    coordinates = Str()
+
+    debug = Bool(False)
+    
+    def __repr__(self, *args, **kwargs):
+        return "Person(first_name={p.first_name},last_name={p.last_name})".format(p=self)
+
+class TableModel(Atom):
+    people = ContainerList(Person)
+   
+data_model = TableModel(people=[
+    Person( 
+            last_name='May 26,2019',
+           first_name='Dataset%i'%i,
+           age=i,
+           coordinates="(%d, %d)" % (i*10, i*20))
+    for i in range(11)
+])
+
+enamldef Main(Window):
+    attr model = data_model
+    Container:
+        Label:
+            text = "Annotated Object List"
+            font = {'size': 24, 'weight': 'bold'}
+     
+        TableView: table:
+            minimum_size = (640,360)
+            horizontal_headers << ['Annotated Object','Dataset','Date','Coordinates']
+            horizontal_stretch = True
+            items << model.people
+            
+            Looper:
+                iterable << range(11)  # update to show 10 rows
+                TableViewRow:
+                    row << table.visible_row+loop_index
+                    attr person << table.items[self.row]
+                                      
+                    Menu:
+                        Action:
+                            text << 'Row {} menu'.format(table.visible_row+loop_index)
+                   
+                    TableViewItem:
+                        text := person.first_name
+                        
+                    TableViewItem:
+                        text := person.first_name
+                        Menu:
+                            Action:
+                                text << 'Edit {} menu'.format(person.first_name)
+                    TableViewItem:
+                        text << person.last_name
+                    TableViewItem:
+                        text = '(10,20)'
+                        editable = True

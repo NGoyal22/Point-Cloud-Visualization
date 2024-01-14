@@ -1,0 +1,84 @@
+from __future__ import print_function
+from enaml.layout.api import vbox, hbox, spacer, align
+from enaml.widgets.api import (
+    Window, Container, GroupBox, Form, Label, Field, CheckBox, ComboBox,
+    MultilineField, PushButton, VTKCanvas
+)
+
+import vtk
+
+
+def create_renderer():
+    quadric = vtk.vtkQuadric()
+    quadric.SetCoefficients(.5, 1, .2, 0, .1, 0, 0, .2, 0, 0)
+
+    sample = vtk.vtkSampleFunction()
+    sample.SetSampleDimensions(50, 50, 50)
+    sample.SetImplicitFunction(quadric)
+
+    contours = vtk.vtkContourFilter()
+    contours.SetInputConnection(sample.GetOutputPort())
+    contours.GenerateValues(5, 0.0, 1.2)
+
+    contour_mapper = vtk.vtkPolyDataMapper()
+    contour_mapper.SetInputConnection(contours.GetOutputPort())
+    contour_mapper.SetScalarRange(0.0, 1.2)
+
+    contour_actor = vtk.vtkActor()
+    contour_actor.SetMapper(contour_mapper)
+
+    outline = vtk.vtkOutlineFilter()
+    outline.SetInputConnection(sample.GetOutputPort())
+
+    outline_mapper = vtk.vtkPolyDataMapper()
+    outline_mapper.SetInputConnection(outline.GetOutputPort())
+
+    outline_actor = vtk.vtkActor()
+    outline_actor.SetMapper(outline_mapper)
+    outline_actor.GetProperty().SetColor(0, 0, 0)
+
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(contour_actor)
+    renderer.AddActor(outline_actor)
+    renderer.SetBackground(.75, .75, .75)
+
+    return renderer
+
+enamldef Main(Window):
+    title = "Group Boxes"
+    Container:
+        padding = 0
+        VTKCanvas:
+            renderer = create_renderer()
+        GroupBox: grp_box:
+            title << "Personal Details" if title_check.checked else ""
+            title_align << combo_box.items[combo_box.index]
+            Form:
+                Label:
+                    text = "First name:"
+                Field:
+                    pass
+                Label:
+                    text = "Last name:"
+                Field:
+                    pass
+                Label:
+                    text = "Home phone:"
+                Field:
+                    pass
+        CheckBox: title_check:
+            text = "Show Title"
+            checked = True
+        CheckBox: flat_check:
+            text = "Flat"
+            checked := grp_box.flat
+        PushButton: push:
+            text = "Submit"
+            clicked ::
+                print('Submit')
+                print(multiline.text)
+        ComboBox: combo_box:
+            index = 0
+            items = ['left', 'center', 'right']
+        MultilineField: multiline:
+            pass

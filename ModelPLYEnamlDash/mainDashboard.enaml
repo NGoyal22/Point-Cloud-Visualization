@@ -1,0 +1,142 @@
+from __future__ import print_function
+from enaml.layout.api import vbox, hbox, spacer, align
+from enaml.widgets.api import (
+    Window, Container, GroupBox, Form, Label, Field, CheckBox, ComboBox,
+    MultilineField, PushButton, VTKCanvas, PopupView, Menu
+)
+
+import vtk
+
+
+def create_renderer():
+
+    # Read the PLY file
+    filename = 'Axleshaft.ply'
+    reader = vtk.vtkPLYReader()
+    reader.SetFileName(filename)
+    reader.Update()
+
+    # Create a mapper and actor
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(reader.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    # Create a renderer, render window, and interactor
+    renderer = vtk.vtkRenderer()
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(render_window)
+
+    # Add the actor to the renderer and set the background
+    renderer.AddActor(actor)
+    renderer.SetBackground(0, 0, 0)
+
+    # Set the camera position and orientation
+    camera = renderer.GetActiveCamera()
+    camera.SetPosition(0, 0, 5)
+    camera.SetFocalPoint(0, 0, 0)
+
+    # Disable lighting
+    actor.GetProperty().SetInterpolationToFlat()
+    
+    return renderer
+
+enamldef PopupMenu(Menu):
+    GroupBox: grpBoxInformation:
+        GroupBox: grpBoxRotateInstrution:
+            Label:
+                text = 'Rotate Object'
+                align = 'left'
+            Label:
+                text = 'Please use CTRL + Mouse to rotate the object'
+                align = 'center'
+        GroupBox: grpBoxZoomInstrution:
+            Label:
+                text = 'Zoom in/out Object'
+                align = 'left'
+            Label:
+                text = 'Please use CTRL + Mouse Roller to Zoom in/ out'
+                align = 'center'
+
+
+enamldef Main(Window):
+    title = "Point Cloud VTK Viewer"
+    attr mdi_visible = True
+    Container:
+        constraints = [
+            # Set the constraint width for the four window views
+            grpBoxOverview.width == 0.49 * width,
+            grpBoxTop.width == 0.49 * width,
+            grpBoxMedian.width == grpBoxAvg.width,
+            grpBoxBtnGrp.height == grpBoxTitle.height,
+            btmGrpBoxBtnGrp.width == btmGrpBoxBtnGrp2.width,
+            # Set the constraint height for the four window views
+            grpBoxOverview.height == 320, 
+            grpBoxSide.height == grpBoxOverview.height, 
+            grpBoxTop.height == grpBoxOverview.height, 
+            grpBoxList.height == grpBoxOverview.height, 
+
+            vbox(hbox(grpBoxTitle, grpBoxBtnGrp, grpBoxBtnGrp2), 
+            vbox(
+                hbox(grpBoxMedian,grpBoxAvg),
+            ),
+            vbox(
+                hbox(grpBoxOverview,grpBoxSide),
+                hbox(grpBoxTop,grpBoxList),
+            ), 
+            hbox(btmGrpBoxBtnGrp, btmGrpBoxBtnGrp2)
+            ), 
+        ]
+        GroupBox: grpBoxTitle:
+            Label: appTitle: 
+                text = 'Exploring the selected Annotated Object'
+        
+        GroupBox: grpBoxBtnGrp:
+            PushButton: information:
+                text << 'Information'
+                clicked :: PopupMenu().popup()
+        GroupBox: grpBoxBtnGrp2:
+            PushButton: settings:
+                text << 'Settings'
+                clicked ::
+                    pass
+
+        GroupBox: grpBoxMedian:
+            Label: appMedian: 
+                text = 'Annotated Object Central Median: '
+        
+        GroupBox: grpBoxAvg:
+            Label: appAvg: 
+                text = 'Annotated Object Central Average: '
+
+        GroupBox: grpBoxOverview:
+            title << "360 View" 
+            VTKCanvas:
+                renderer = create_renderer()
+        GroupBox: grpBoxSide:
+            title << "Side View" 
+            VTKCanvas:
+                renderer = create_renderer()
+        GroupBox: grpBoxTop:
+            title << "Top View" 
+            VTKCanvas:
+                renderer = create_renderer()
+        GroupBox: grpBoxList:
+            title << "Object List" 
+
+        GroupBox: btmGrpBoxBtnGrp:
+            PushButton: previous:
+                text << 'Previous Object'
+                clicked ::
+                    pass
+        GroupBox: btmGrpBoxBtnGrp2:
+            PushButton: next:
+                text << 'Next Object'
+                clicked ::
+                    pass
+
+
+        

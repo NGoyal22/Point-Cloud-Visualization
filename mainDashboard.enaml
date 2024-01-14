@@ -1,0 +1,146 @@
+from __future__ import print_function
+from enaml.layout.api import vbox, hbox, spacer, align
+from enaml.widgets.api import (
+    Window, Container, GroupBox, Form, Label, Field, CheckBox, ComboBox,
+    MultilineField, PushButton, VTKCanvas, PopupView, Menu, FileDialogEx
+)
+import os
+import sys
+import random
+
+from vtkDraft import vtkPCDLoader
+
+import vtk
+
+from boxWidget import testBox
+
+path='/Users/neerajgoyal/Desktop/Graphics_and_amination/Project/assets/hydro.tel'
+
+fileNumSelection = 0
+centorid = (0, 0, 0)
+median = (0, 0, 0)
+
+renderers, new_path, numOfFiles = vtkPCDLoader(path, fileNumSelection)
+
+# Create a sphere source and mapper for the first sphere actor
+sphereSource1 = vtk.vtkSphereSource()
+sphereSource1.SetCenter(0, 0, 0)
+sphereSource1.SetRadius(0.25)
+sphereMapper1 = vtk.vtkPolyDataMapper()
+sphereMapper1.SetInputConnection(sphereSource1.GetOutputPort())
+
+# Create an actor for the first sphere and set its mapper
+sphereActor1 = vtk.vtkActor()
+sphereActor1.SetMapper(sphereMapper1)
+sphereActor1.GetProperty().SetOpacity(0.5)
+renderers[0].AddActor(sphereActor1)
+renderers[1].AddActor(sphereActor1)
+renderers[2].AddActor(sphereActor1)
+enamldef PopupMenu(Menu):
+    GroupBox: grpBoxInformation:
+        GroupBox: grpBoxRotateInstrution:
+            Label:
+                text = 'Rotate Object'
+                align = 'left'
+            Label:
+                text = 'Please use CTRL + Mouse to rotate the object'
+                align = 'center'
+        GroupBox: grpBoxZoomInstrution:
+            Label:
+                text = 'Zoom in/out Object'
+                align = 'left'
+            Label:
+                text = 'Please use CTRL + Mouse Roller to Zoom in/ out'
+                align = 'center'
+
+enamldef SettingMenu(Menu):
+    GroupBox: grpBoxInformation:
+        GroupBox: grpBoxRotateInstrution:
+            Label:
+                text = 'Auto-Rotate the Object?'
+                align = 'left'
+            CheckBox:
+                text = 'Check for Auto-Rotation'
+                clicked :: print('Check One clicked')
+                
+
+enamldef Main(Window):
+    title = "Point Cloud VTK Viewer"
+    attr mdi_visible = True
+    Container:
+        constraints = [
+            # Set the constraint width for the four window views
+            grpBoxOverview.width == 0.49 * width,
+            grpBoxTop.width == 0.49 * width,
+            grpBoxMedian.width == grpBoxAvg.width,
+            grpBoxBtnGrp.height == grpBoxTitle.height,
+            btmGrpBoxBtnGrp.width == btmGrpBoxBtnGrp2.width,
+            # Set the constraint height for the four window views
+            grpBoxOverview.height == 320, 
+            grpBoxSide.height == grpBoxOverview.height, 
+            grpBoxTop.height == grpBoxOverview.height, 
+            grpBoxList.height == grpBoxOverview.height, 
+
+            vbox(hbox(grpBoxTitle, grpBoxBtnGrp, grpBoxBtnGrp2), 
+            vbox(
+                hbox(grpBoxMedian,grpBoxAvg),
+            ),
+            vbox(
+                hbox(grpBoxOverview,grpBoxSide),
+                hbox(grpBoxTop,grpBoxList),
+            ), 
+            hbox(btmGrpBoxBtnGrp, btmGrpBoxBtnGrp2)
+            ), 
+        ]
+        GroupBox: grpBoxTitle:
+            Label: appTitle: 
+                text = 'Exploring the selected Annotated Object: ' + new_path
+        
+        GroupBox: grpBoxBtnGrp:
+            PushButton: information:
+                text << 'Information'
+                clicked :: PopupMenu().popup()
+        GroupBox: grpBoxBtnGrp2:
+            PushButton: settings:
+                text << 'Settings'
+                clicked :: SettingMenu().popup()
+
+        GroupBox: grpBoxMedian:
+            Label: appMedian: 
+                text = 'Annotated Object Central Median: ' + str(centorid)
+        
+        GroupBox: grpBoxAvg:
+            Label: appAvg: 
+                text = 'Annotated Object Central Average: ' + str(median)
+
+        GroupBox: grpBoxOverview:
+            title << "360 View" 
+            VTKCanvas:
+                renderer = renderers[0]
+        GroupBox: grpBoxSide:
+            title << "Side View" 
+            VTKCanvas:
+                renderer = renderers[1]
+        GroupBox: grpBoxTop:
+            title << "Top View" 
+            VTKCanvas:
+                renderer = renderers[2]
+        GroupBox: grpBoxList:
+            title << "Object List" 
+            
+
+        GroupBox: btmGrpBoxBtnGrp:
+            PushButton: previous:
+                text << 'Previous Object'
+                clicked :: 
+                    if fileNumSelection >= 1 and fileNumSelection < numOfFiles-1:
+                        fileNumSelection = fileNumSelection - 1
+        GroupBox: btmGrpBoxBtnGrp2:
+            PushButton: next:
+                text << 'Next Object'
+                clicked ::
+                    if fileNumSelection > 0 and fileNumSelection <= numOfFiles-2:
+                        fileNumSelection = fileNumSelection + 1
+
+
+        
